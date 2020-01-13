@@ -1,30 +1,68 @@
+""" To DOs:
+- Write main file Colppy to Pandas querys and run in Jupyter. Check logs.
+- Write unittests for main file.
+- Write Gspread Panda encapsulation module
+- Write Gspread pandas encapsulation unittests.
+- Write main file Pandas to Gspread querys and run in Jupyter. Check logs.
+- Complete unittests for main file.
+- Test py2exe in Windows.
+- Check final logs
+
+Nice to have:
+- Replace payload variables for big payload dictionary and use for to items
+- Maybe use list for the payloads that each setter should correct and then
+for loops.
+- Filter diary may not correspond to this module (Pandas filter). That was
+ereased from tests but not from this module yet.
+- Check date and company setters. Awfully written. Refactor.
+- Check return None on error handling - Clean Code.
+- Class encapsulation.
+
+"""
+
 # IMPORTS
 
 import requests
 import datetime
-import time
-import pandas as pd
 import copy
-import default_configuration
+import colppy_configuration
+import logging
 
 
-# GLOBAL VARIABLES
+# LOGGER
 ##############################################################################
-colppy_defaults = default_configuration.colppy_defaults
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s: %(message)s")
+stream_formatter = logging.Formatter("%(levelname)s: %(message)s")
+
+file_handler = logging.FileHandler(filename="call_colppy.log")
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(file_formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+stream_handler.setFormatter(stream_formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
 
 # SESSION CLASS
 ##############################################################################
 
 
 class ColppySession(object):
-    def __init__(self, colppy_defaults):
+    def __init__(self, colppy_defaults=None):
         """A Colppy session object gets inititialized with a dictionary of dict
         containing some of the following information and keys:
         "payload_temps": Templates for the different Colppy calls of the
-        program. The first version contains "login", "list_companies",
-        "list_ccost", "list_diary", "list_invoices". Each of these keys
-        contain the dictionary form of a json payload according to the Colppy
-        API documentation.
+        program. This version contains "login", "list_companies", "list_ccost",
+        "list_diary", "list_invoices", "list_inventory" and "list_deposits_for_item".
+        Each of these keys contain the dictionary form of a json payload
+        according to the Colppy API documentation.
         "ccosts" (optional): Dictionary containing the existing ccosts to
         filter the diary. First keys: 1, 2 (integers). Second keys: CCost name
         as str. Value: CCost ID as str, as it appears on the diary response.
@@ -32,17 +70,25 @@ class ColppySession(object):
         diary and invoices.
         Having these last two dicts avoid making calls to the API to get that
         data and set default values.
+        If no input is given, takes the defaults from module colppy_defaults.
         """
+
+        if not colppy_defaults:
+            colppy_defaults = colppy_configuration.colppy_defaults
         defaults = copy.deepcopy(colppy_defaults)
         self.login_payload = defaults["payload_temps"]["login"]
         self.list_companies_payload = defaults["payload_temps"]["list_companies"]
         self.list_ccost_payload = defaults["payload_temps"]["list_ccost"]
         self.list_diary_payload = defaults["payload_temps"]["list_diary"]
         self.list_invoices_payload = defaults["payload_temps"]["list_invoices"]
+        self.list_inventory_payload = defaults["payload_temps"]["list_inventory"]
+        self.list_deposits_for_item_payload = defaults["payload_temps"]["list_deposits_for_item"]
+
         try:
             self.ccosts = defaults["ccosts"]
         except KeyError:
             self.ccosts = {}
+
         try:
             self.company_id = defaults["company_id"]
         except KeyError:
@@ -61,18 +107,18 @@ class ColppySession(object):
         return "".join([line_1, line_2])
 
     def login_for(self, state):
-        print("Trying to log into Colppy...")
         try:
+            logger.info("Trying to log into Colppy...")
             self.login_call = ColppyCall(state)
             self.login_resp = self.login_call.get_response(
                                                         self.login_payload,
                                                         "post"
                                                         )
-            print("Login OK.")
+            logger.info("Login OK.")
             self.state = state
             self.set_session_key_to_payloads()
         except ValueError:
-            print("An exception ocurred during login. Check call object.")
+            logger.exception("An exception ocurred during login. Check call object.")
 
     def set_invoices_for(self, dates_range=None, company_id=None):
         """Dates range is a tuple of dates in str isoformat. The movements
@@ -85,11 +131,11 @@ class ColppySession(object):
         data for one invoice.
         """
 
-        print("Getting invoices...")
+        logger.info("Getting invoices...")
         self.set_input_for_call(company_id, dates_range)
         self.call_list_invoices()
         self.invoices = self.list_invoices_resp["data"]
-        print("Got %d invoices.\n" % len(self.invoices))
+        logger.info("Got %d invoices.\n" % len(self.invoices))
 
     def set_diary_for(self, dates_range=None, company_id=None):
         """Dates range is a tuple of dates in str isoformat. The movements
@@ -102,11 +148,11 @@ class ColppySession(object):
         data for one diary movement.
         """
 
-        print("Getting diary movs...")
+        logger.info("Getting diary movs...")
         self.set_input_for_call(company_id, dates_range)
         self.call_list_diary()
         self.diary_movs = self.list_diary_resp["movimientos"]
-        print("Got %d diary movs." % len(self.diary_movs))
+        logger.info("Got %d diary movs." % len(self.diary_movs))
 
     def set_filtered_diary_for(self, dates_range=None,
                                company_id=None, ccost_1=None, ccost_2=None):
@@ -128,84 +174,83 @@ class ColppySession(object):
         """
 
         self.set_diary_for(dates_range, company_id)
+
         if not self.is_ccost_in_n_ccosts(ccost_1, 1):
-            print("CCost_1 not found in CCosts. Set to None")
+            logger.info("CCost_1 not found in CCosts. Set to None")
             ccost_1 = None
         if not self.is_ccost_in_n_ccosts(ccost_2, 2):
-            print("CCost_2 not found in CCosts. Set to None")
+            logger.info("CCost_2 not found in CCosts. Set to None")
             ccost_2 = None
-        print("Filtering...\n")
+
+        logger.info("Filtering...\n")
         self.filter_diary_by(ccost_1, ccost_2)
-        print("Filtered %d by (%s, %s)" % (len(self.filtered_diary_movs),
-                                           ccost_1, ccost_2))
+        logger.info("Filtered %d by (%s, %s)" % (len(self.filtered_diary_movs),
+                                                 ccost_1, ccost_2))
 
-    def save_invoices_to_csv(self):
-        try:
-            invoices_as_pandas = pd.DataFrame(self.invoices)
-            filename = self.set_csv_name("invoices")
-            print("Saving %s..." % filename)
-            invoices_as_pandas.to_csv(path_or_buf=filename)
-        except AttributeError:
-            print("First call invoices to save.")
+    def set_inventory(self, company_id=None):
+        """Company ID is a str of an int representing the company id in Colppy.
+        If no arguments are given, the object searches for the ones used for
+        the last call.
+        Set the object variable "inventory" with the data part of the API
+        response, which is a list of dictionaries. Each dictionary contains
+        data for one inventory item.
+        """
 
-    def save_diary_movs_to_csv(self):
-        try:
-            diary_movs_as_pandas = pd.DataFrame(self.diary_movs)
-            filename = self.set_csv_name("diary_movs")
-            print("Saving %s..." % filename)
-            diary_movs_as_pandas.to_csv(path_or_buf=filename)
-        except AttributeError:
-            print("First call diary_movs to save.")
+        logger.info("Getting inventory...")
+        self.set_company_for_call(company_id)
+        self.call_list_inventory()
+        self.inventory = self.list_inventory_resp["data"]
+        logger.info("Got %d items." % len(self.inventory))
 
-    def save_filtered_diary_movs_to_csv(self):
-        try:
-            filtered_diary_movs_as_pandas = pd.DataFrame(self.filtered_diary_movs)
-            filename = self.set_csv_name("filtered_diary_movs")
-            print("Saving %s..." % filename)
-            filtered_diary_movs_as_pandas.to_csv(path_or_buf=filename)
-        except AttributeError:
-            print("First call filtered_diary_movs to save.")
+    def get_deposits_for(self, item_id, company_id=None):
+        """ Item ID is a str that represents the item id in Colppy.
+        Company ID is a str of an int representing the company id in Colppy.
+        If no company id is given, the object searches for the one used for
+        the last call.
+        Returns the data part of the API response, which is a list of dict.
+        Each dictionary contains name of the deposit and the quantity of the
+        item in that deposit.
+        """
 
-    def get_invoices_as_pandas(self):
+        logger.info("Getting deposits for %s..." % item_id)
+        self.set_company_for_call(company_id)
+        deposits_for_item_resp = self.call_list_deposits_for_item(item_id)
         try:
-            return pd.DataFrame(self.invoices)
-        except AttributeError:
-            print("First call invoices to save.")
-
-    def get_diary_movs_as_pandas(self):
-        try:
-            return pd.DataFrame(self.diary_movs)
-        except AttributeError:
-            print("First call diary_movs to save.")
-
-    def get_filtered_diary_movs_as_pandas(self):
-        try:
-            return pd.DataFrame(self.filtered_diary_movs)
-        except AttributeError:
-            print("First call filtered_diary_movs to save.")
+            deposits_for_item = deposits_for_item_resp["data"]
+            logger.info("Got deposits.")
+            return deposits_for_item
+        except KeyError:
+            logger.exception("Can't get data key for %s." % item_id)
+            logger.error("Check deposits response:")
+            logger.error(deposits_for_item_resp)
+            raise KeyError
 
     def set_session_key_to_payloads(self):
-        print("\nSetting key for session...")
         try:
+            logger.info("\nSetting key for session...")
             session = {}
             self.key = self.login_resp["data"]["claveSesion"]
             session["usuario"] = self.login_payload["parameters"]["usuario"]
             session["claveSesion"] = self.key
         except KeyError:
-            print("Check login payload response.")
-            print(self.login_resp)
+            logger.exception("Check login payload response.")
+            logger.error(self.login_resp)
             raise KeyError("Could not get session key.")
+
         self.list_companies_payload["parameters"]["sesion"] = session
         self.list_diary_payload["parameters"]["sesion"] = session
         self.list_invoices_payload["parameters"]["sesion"] = session
         self.list_ccost_payload["parameters"]["sesion"] = session
-        print("Key set on payloads.")
+        self.list_inventory_payload["parameters"]["sesion"] = session
+        self.list_deposits_for_item_payload["parameters"]["sesion"] = session
+        logger.info("Key set on payloads.")
 
     def set_input_for_call(self, company_id=None, dates_range=None):
         try:
             self.set_company_for_call(company_id)
             self.set_dates_for_call(dates_range)
         except ValueError:
+            logger.exception("Missing data.")
             raise ValueError("Missing data.")
 
     def set_company_for_call(self, company_id=None):
@@ -214,17 +259,20 @@ class ColppySession(object):
                 assert isinstance(company_id, str)
                 int(company_id)
             except AssertionError:
-                print("Company ID should be str")
-                raise ValueError
+                logger.exception("Company ID should be str.")
+                raise ValueError("Company ID should be str.")
             except ValueError:
-                print("Company ID must be a str of an int")
-                raise ValueError
+                logger.exception("Company ID must be a str of an int.")
+                raise ValueError("Company ID must be a str of an int.")
+
             try:
                 assert self.is_valid_company(company_id)
             except AssertionError:
-                print("Company not found in available companies: \n")
-                print(self.available_companies)
+                logger.exception("Company not found in available companies: \n")
+                logger.error(self.get_available_companies())
+
             self.last_call_company_id = company_id
+
         else:
             try:
                 self.last_call_company_id
@@ -232,24 +280,28 @@ class ColppySession(object):
                 if self.company_id:
                     self.last_call_company_id = self.company_id
                 else:
-                    print("Please set a company for call and re-run method.\n")
-                    self.print_available_companies()
-                    print("No company given.")
-                    raise ValueError
+                    logger.error("No company given. Please set a company for call and re-run method.\n")
+                    logger.error(self.get_available_companies())
+                    raise ValueError("No company given.")
+
         self.list_diary_payload["parameters"]["idEmpresa"] = self.last_call_company_id
         self.list_invoices_payload["parameters"]["idEmpresa"] = self.last_call_company_id
         self.list_ccost_payload["parameters"]["idEmpresa"] = self.last_call_company_id
-        print("Setting company to %s..." % self.last_call_company_id)
+        self.list_inventory_payload["parameters"]["idEmpresa"] = self.last_call_company_id
+        self.list_deposits_for_item_payload["parameters"]["idEmpresa"] = self.last_call_company_id
+
+        logger.info("Setting company to %s..." % self.last_call_company_id)
 
     def set_dates_for_call(self, dates_range=None):
         if not dates_range:
             try:
                 dates_range = self.last_call_dates
             except AttributeError:
-                print("No dates given.")
-                raise ValueError
+                logger.exception("No dates given.")
+                raise ValueError("No dates given.")
+
         if self.is_valid_dates_range(dates_range):
-            print("Setting dates for data from  %s to %s...\n" % dates_range)
+            logger.info("Setting dates for data from  %s to %s...\n" % dates_range)
             start_date, end_date = self.reorder_dates(dates_range)
             self.list_diary_payload["parameters"]["fromDate"] = start_date
             self.list_diary_payload["parameters"]["toDate"] = end_date
@@ -257,46 +309,67 @@ class ColppySession(object):
             self.list_invoices_payload["parameters"]["filter"][1]["value"] = end_date
             self.last_call_dates = (start_date, end_date)
         else:
-            print("Check dates range and re-run method.")
-            raise ValueError
+            logger.exception("Check dates range and re-run method.")
+            raise ValueError("Dates error.")
 
     def call_list_invoices(self):
         try:
             self.list_invoices_call = ColppyCall(self.state)
             self.list_invoices_resp = self.list_invoices_call.get_response(self.list_invoices_payload)
-            print("Invoices query OK.")
+            logger.info("Invoices query OK.")
         except ValueError:
-            print("An exception ocurred during query. Check call object.")
+            logger.exception("An exception ocurred during query. Check call object.")
             raise ValueError
 
     def call_list_diary(self):
         try:
             self.list_diary_call = ColppyCall(self.state)
             self.list_diary_resp = self.list_diary_call.get_response(self.list_diary_payload)
-            print("Diary query OK.")
+            logger.info("Diary query OK.")
         except ValueError:
-            print("An exception ocurred during query. Check call object.")
+            logger.exception("An exception ocurred during query. Check call object.")
             raise ValueError
 
     def call_list_companies(self):
         try:
             self.list_companies_call = ColppyCall(self.state)
             self.list_companies_resp = self.list_companies_call.get_response(self.list_companies_payload)
-            print("Companies query OK.")
+            logger.info("Companies query OK.")
         except ValueError:
-            print("An exception ocurred during query. Check call object.")
+            logger.exception("An exception ocurred during query. Check call object.")
             raise ValueError
 
     def call_list_ccost(self, n_ccost):
-        print("Getting ccosts %d...\n" % n_ccost)
+        logger.info("Getting ccosts %d...\n" % n_ccost)
         list_ccost_n_payload = self.list_ccost_payload.copy()
         list_ccost_n_payload["parameters"]["ccosto"] = n_ccost
         try:
             self.list_ccost_call = ColppyCall(self.state)
             self.list_ccost_resp = self.list_ccost_call.get_response(list_ccost_n_payload)
-            print("Ccost query OK.")
+            logger.info("Ccost query OK.")
         except ValueError:
-            print("An exception ocurred during query. Check call object.")
+            logger.exception("An exception ocurred during query. Check call object.")
+            raise ValueError
+
+    def call_list_inventory(self):
+        try:
+            self.list_inventory_call = ColppyCall(self.state)
+            self.list_inventory_resp = self.list_inventory_call.get_response(self.list_inventory_payload)
+            logger.info("Inventory query OK.")
+        except ValueError:
+            logger.exception("An exception ocurred during query. Check call object.")
+            raise ValueError
+
+    def call_list_deposits_for_item(self, item_id):
+        list_deposits_for_item_payload = copy.deepcopy(self.list_deposits_for_item_payload)
+        list_deposits_for_item_payload["parameters"]["idItem"] = item_id
+        try:
+            list_deposits_for_item_call = ColppyCall(self.state)
+            list_deposits_for_item_resp = list_deposits_for_item_call.get_response(list_deposits_for_item_payload)
+            logger.info("Deposits query OK.")
+            return list_deposits_for_item_resp
+        except ValueError:
+            logger.exception("An exception ocurred during query. Check call object.")
             raise ValueError
 
     def filter_diary_by(self, ccost_1=None, ccost_2=None):
@@ -314,22 +387,27 @@ class ColppySession(object):
             self.list_companies_resp
         except AttributeError:
             self.call_list_companies()
-        print("Getting available companies...")
+
+        logger.info("Getting available companies...")
+
         self.available_companies = {}
         try:
             for company in self.list_companies_resp["data"]:
                 comp_id = company["IdEmpresa"]
                 comp_name = company["razonSocial"]
                 self.available_companies[comp_name] = comp_id
-            print("Availables companies OK")
+            logger.info("Availables companies OK")
         except KeyError:
             self.available_companies["Query Error"] = None
-            print("Got these companies:", self.available_companies, "\n")
-            print("Check keys for company id and name. Response:\n")
-            print(self.list_companies_resp)
+            logger.exception("Got these companies:", self.available_companies, "\n")
+            logger.error("Check keys for company id and name. Response:\n")
+            logger.error(self.list_companies_resp)
+
+    def set_item_id_for_deposits(self):
+        pass
 
     def update_available_companies(self):
-        print("Updating available companies...")
+        logger.info("Updating available companies...")
         self.call_list_companies()
         self.set_available_companies()
 
@@ -339,9 +417,13 @@ class ColppySession(object):
         except AttributeError:
             self.set_company_for_call()
         self.call_list_ccost(n_ccost)
-        for code in self.list_ccost_resp["codigos"]:
-            if code["Codigo"] not in self.ccosts[n_ccost].keys():
-                self.ccosts[n_ccost][code["Codigo"]] = code["Id"]
+        try:
+            for code in self.list_ccost_resp["codigos"]:
+                if code["Codigo"] not in self.ccosts[n_ccost].keys():
+                    self.ccosts[n_ccost][code["Codigo"]] = code["Id"]
+        except KeyError:
+            logger.warning("Could not find 'codigos', check response.")
+            logger.warning(self.list_ccost_resp)
 
     def is_valid_company(self, company_id):
         try:
@@ -356,7 +438,7 @@ class ColppySession(object):
         try:
             assert len(dates_range) == 2
         except AssertionError:
-            print("Dates must be a tuple of 2 str: 'YYYY-MM-DD'")
+            logger.exception("Dates must be a tuple of 2 str: 'YYYY-MM-DD'")
             return False
         for date in dates_range:
             if not self.is_valid_date(date):
@@ -368,8 +450,8 @@ class ColppySession(object):
             self.iso_str_to_date(date)
             return True
         except ValueError:
-            print("Date %s non existent or wrong format" % date)
-            print("Date format should be 'YYYY-MM-DD'.")
+            logger.exception("Date %s non existent or wrong format" % date)
+            logger.error("Date format should be 'YYYY-MM-DD'.")
             return False
 
     def is_ccost_in_n_ccosts(self, name_ccost, n_ccost):
@@ -385,35 +467,23 @@ class ColppySession(object):
         else:
             return ccost_mov == ccost_filter
 
-    def print_available_companies(self):
+    def get_available_companies(self):
         try:
             self.available_companies
         except AttributeError:
             self.set_available_companies()
-        print(self.available_companies)
+        return self.available_companies
 
     def reorder_dates(self, dates_range):
         start_date, end_date = dates_range
         if self.iso_str_to_date(start_date) > self.iso_str_to_date(end_date):
             start_date, end_date = end_date, start_date
-            print("End date was older than starting date. Correcting...",
-                  "(stupid human)\n")
+            logger.warning("End date was older than start date. Correcting...",
+                           "(stupid human)\n")
         return (start_date, end_date)
 
     def iso_str_to_date(self, iso_str):
         return datetime.date.fromisoformat(iso_str)
-
-    def set_csv_name(self, comment):
-        dates_str = ""
-        for iso_str in self.last_call_dates:
-            date_value = datetime.date.fromisoformat(iso_str)
-            dates_str = "".join([dates_str, date_value.strftime("%Y%m%d"), "_"])
-        now_dt = datetime.datetime.now()
-        now_str = now_dt.strftime("%Y%m%d%H%M%S")
-        return "".join([comment, "_", dates_str, now_str, ".csv"])
-
-    def is_session_live(self):
-        pass
 
 
 # CALL CLASS
@@ -452,22 +522,22 @@ class ColppyCall(object):
         except AttributeError:
             self.call_api(payload, request_type)
         if self.is_call_successful():
-            print("Query successful.")
+            logger.info("Query successful.")
             return self.response["response"]
         else:
-            print("Query not successful. Response:")
-            print(self.response)
+            logger.error("Query not successful. Response:")
+            logger.error(self.response)
             raise ValueError
 
     def call_api(self, payload, request_type):
         if self.is_valid_request_type(request_type):
-            print("Calling API...   ")
+            logger.info("Calling API...   ")
             self.payload = payload
             self.response_json = self.call_requests[request_type](self.call_url,
                                                                   json=self.payload)
         else:
-            print("Request type not valid.")
-            print("Valid requests:", self.call_requests.keys())
+            logger.error("Request type not valid.")
+            logger.error("Valid requests:", self.call_requests.keys())
             raise ValueError
 
     def is_valid_state(self, state):
@@ -475,8 +545,8 @@ class ColppyCall(object):
             self.urls[state]
             return True
         except KeyError:
-            print("%s is not a valid state. Valid states:" % state)
-            print(self.urls.keys(), "\n")
+            logger.exception("%s is not a valid state. Valid states:" % state)
+            logger.error(self.urls.keys(), "\n")
             return False
 
     def is_valid_request_type(self, request_type):
@@ -492,10 +562,10 @@ class ColppyCall(object):
             self.response_json.raise_for_status()
             return True
         except requests.HTTPError:
-            print("Query response raised HTTP status error")
-            print(self.response_json)
-            print("URL:", self.call_url)
-            print("Payload:\n", self.payload)
+            logger.exception("Query response raised HTTP status error")
+            logger.error(self.response_json)
+            logger.error("URL:", self.call_url)
+            logger.error("Payload:\n", self.payload)
             return False
 
     def is_response_success(self):
@@ -504,12 +574,12 @@ class ColppyCall(object):
                 success = self.response["response"]["success"]
                 return success
             except KeyError:
-                print("Could not check response success. Check response.")
+                logger.exception("Could not check response success. Check response.")
                 return False
         else:
-            print("Response of query is None.")
-            print(self.response["result"])
-            print(self.response["response"])
+            logger.error("Response of query is None.")
+            logger.error(self.response["result"])
+            logger.error(self.response["response"])
             return False
 
     def parse_response_json(self):
