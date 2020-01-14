@@ -409,9 +409,9 @@ last_invoices = [{'idFactura': '7669456',
                   'RazonSocial': 'JUANA TORINO',
                   'NombreFantasia': 'JUANA TORINO'}]
 
-diary_movs_len = 1085
+diary_len = 1085
 
-first_diary_movs = [{'idEmpresa': '19459',
+first_diary = [{'idEmpresa': '19459',
                       'idTabla': '8',
                       'idElemento': '4211245',
                       'idDiario': '85869551',
@@ -550,7 +550,7 @@ first_diary_movs = [{'idEmpresa': '19459',
                       'isNIIF': '0',
                       'itemId': None}]
 
-last_diary_movs = [{'idEmpresa': '19459',
+last_diary = [{'idEmpresa': '19459',
                       'idTabla': '8',
                       'idElemento': '4211377',
                       'idDiario': '85872154',
@@ -667,9 +667,9 @@ last_diary_movs = [{'idEmpresa': '19459',
                       'itemId': None}]
 
 
-new_diary_movs_len = 3921
+new_diary_len = 3921
 
-first_new_diary_movs = [{'idEmpresa': '19459',
+first_new_diary = [{'idEmpresa': '19459',
                           'idTabla': '8',
                           'idElemento': '4134180',
                           'idDiario': '84016324',
@@ -808,7 +808,7 @@ first_new_diary_movs = [{'idEmpresa': '19459',
                           'isNIIF': '0',
                           'itemId': None}]
 
-last_new_diary_movs = [{'idEmpresa': '19459',
+last_new_diary = [{'idEmpresa': '19459',
                           'idTabla': '36',
                           'idElemento': '854543',
                           'idDiario': '85071198',
