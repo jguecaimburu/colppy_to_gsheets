@@ -215,13 +215,13 @@ class ColppySession(object):
             self.last_call_company_id = company_id
 
         try:
+            logger.info("Setting company to %s..." % self.last_call_company_id)
             for key, payload in self.payloads.items():
                 payload["parameters"]["idEmpresa"] = self.last_call_company_id
             logger.info("Company set on payloads.")
         except KeyError:
             logger.exception("Could not find [parameters][idEmpresa] in payloads.")
             raise KeyError("Could not set company.")
-        logger.info("Setting company to %s..." % self.last_call_company_id)
 
     def set_default_company_id(self):
         try:
