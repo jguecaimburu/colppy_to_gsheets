@@ -1,5 +1,6 @@
 """ To DOs:
 - Filter relevant INVENTORY
+- If IdItem is 0, try "id"
 - Refactor batch and update cells
 - Think error handling
 - Correct bare EXCEPTS
@@ -21,7 +22,7 @@ General:
 # IMPORTS
 ##############################################################################
 
-from call_colppy import ColppySession
+from colppy_api import ColppySession
 from manipule_gsheets import Gsheet
 import datetime
 import pandas as pd
@@ -344,53 +345,3 @@ class UpdateInventory(object):
         final_worksheet = self.spread.find_sheet(self.final_worksheet_name)
         if final_worksheet:
             self.spread.delete_sheet(self.temp_worksheet_name)
-
-
-# GET MOVEMENTS CLASS
-##############################################################################
-
-
-class GetMovements(object):
-    global state
-    col_name_dict = {}  # readable name to Colppy name
-
-    def __init__(self, state=None):
-        if state:
-            self.state = state
-        else:
-            self.state = global_state
-
-    def get_invoices_for(self, dates, company_id=None):
-        self.session = ColppySession()
-        self.session.login_and_set_session_key_for(self.state)
-        self.session.set_invoices_for(dates, company_id)
-        return pd.DataFrame(self.session.invoices)
-
-    def get_diary_for(self, dates, company_id=None):
-        self.session = ColppySession()
-        self.session.login_and_set_session_key_for(self.state)
-        self.session.set_diary_for(dates, company_id)
-        return pd.DataFrame(self.session.diary)
-
-    def get_filtered_diary_for(self, dates,
-                               company_id=None, ccost_1=None, ccost_2=None):
-        diary_df = self.get_diary_for(dates, company_id)
-        ccosts = self.get_valid_ccosts_tuple(ccost_1, ccost_2)
-        return self.filter_diary_by_ccosts(diary_df, ccosts)
-
-    def get_valid_ccosts_tuple(self, ccost_1=None, ccost_2=None):
-        if not self.session.is_ccost_in_n_ccosts(ccost_1, 1):
-            ccost_1 = None
-        if not self.session.is_ccost_in_n_ccosts(ccost_2, 2):
-            ccost_2 = None
-        return (ccost_1, ccost_2)
-
-    def filter_diary_by_ccosts(diary_df, ccosts):
-        ccost_1_filter = diary_df['ccosto1'] == ccosts[0]
-        ccost_2_filter = diary_df['ccosto2'] == ccosts[1]
-        filtered_diary = diary_df.copy()
-        if ccosts[0]:
-            filtered_diary = filtered_diary.loc[ccost_1_filter]
-        if ccosts[1]:
-            filtered_diary = filtered_diary.loc[ccost_2_filter]
-        return filtered_diary

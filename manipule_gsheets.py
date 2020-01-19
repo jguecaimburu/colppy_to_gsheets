@@ -1,6 +1,5 @@
 from gspread_pandas import Spread
 from gspread_pandas.conf import get_creds
-import pandas as pd
 import gsheet_configuration
 
 
