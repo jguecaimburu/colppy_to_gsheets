@@ -3,7 +3,7 @@ from gspread_pandas.conf import get_creds
 import gsheet_configuration
 
 
-class Gsheet(object):
+class GoogleSpread(object):
 
     def __init__(self, spread, sheet=0, creds=None, create_sheet=False):
         if creds:

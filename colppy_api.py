@@ -25,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s: %(message)s")
 stream_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
-file_handler = logging.FileHandler(filename="call_colppy.log")
+file_handler = logging.FileHandler(filename="colppy_api.log")
 file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(file_formatter)
 

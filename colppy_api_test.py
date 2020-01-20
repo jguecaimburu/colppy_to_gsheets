@@ -8,7 +8,6 @@ Check encapsulation. Some tests violate to avoid defaults values easily.
 import colppy_api_output_examples
 import unittest
 from colppy_api import Caller
-import copy
 
 
 class CallerTest(unittest.TestCase):
