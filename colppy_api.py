@@ -12,7 +12,7 @@ Nice to have:
 import requests
 import datetime
 import copy
-import iki_colppy_conf
+from app_configurator import ParseConfiguration, PayloadBuilderConfigurator
 import logging
 
 
@@ -22,7 +22,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s: %(message)s")
+file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s: \
+    %(message)s")
 stream_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
 file_handler = logging.FileHandler(filename="colppy_api.log")
@@ -44,34 +45,26 @@ logger.addHandler(stream_handler)
 ################
 
 class Caller():
-    def __init__(self, colppy_configuration=None, state="testing"):
+    def __init__(self, payload_templates=None,
+                 app_configuraton=None, state="testing"):
         self.state = state
-        self.payload_builder = PayloadBuilder(colppy_configuration)
-        self.set_available_companies()
-
-    def set_available_companies(self):
-        self.available_companies = {}
-        logger.info("Setting caller available companies...")
-        try:
-            for company in self.get_companies():
-                company_id = company["IdEmpresa"]
-                company_name = company["razonSocial"]
-                self.available_companies[company_name] = company_id
-            logger.info("Availables companies OK")
-        except KeyError:
-            self.available_companies["Query Error"] = None
-            logger.exception("Got these companies:", self.available_companies)
-            logger.error("Check keys for company id and name")
+        self.payload_builder = PayloadBuilder(payload_templates,
+                                              app_configuraton)
+        self.available_companies = ParseConfiguration(app_configuraton) \
+            .get_default_available_companies()
 
     def get_companies(self):
         self.get_session_key()
         logger.info("Preparing companies payload...")
-        companies_payload = self.payload_builder.get_list_companies_payload(self.session_key)
+        companies_payload = self.payload_builder \
+            .get_list_companies_payload(self.session_key)
         logger.info("Payload ok.")
         logger.info("Getting companies...")
         companies_requester = RequestMaker(self.state)
-        companies_response = companies_requester.get_response(companies_payload)
-        companies_content = ResponseParser(companies_response).get_response_content()
+        companies_response = companies_requester \
+            .get_response(companies_payload)
+        companies_content = ResponseParser(companies_response) \
+            .get_response_content()
         companies_data = companies_content["data"]
         logger.info("Got %d companies." % len(companies_data))
         return companies_data
@@ -81,7 +74,8 @@ class Caller():
         session_duration_in_mins = 25
         now = datetime.datetime.now()
         try:
-            delta_mins = (now - self.login_time).total_seconds() / seconds_per_min
+            delta_mins = ((now - self.login_time).total_seconds()
+                          / seconds_per_min)
             if delta_mins > session_duration_in_mins:
                 open_session = self.login()
                 self.session_key = open_session["data"]["claveSesion"]
@@ -105,14 +99,17 @@ class Caller():
     def get_invoices_for(self, dates_range=None, company_id=None):
         self.get_session_key()
         self.assert_company_is_available(company_id)
-        invoices_payload_parameters = (dates_range, company_id, self.session_key)
+        invoices_payload_parameters = (dates_range, company_id,
+                                       self.session_key)
         logger.info("Preparing invoices payload...")
-        invoices_payload = self.payload_builder.get_list_invoices_payload(*invoices_payload_parameters)
+        invoices_payload = self.payload_builder. \
+            get_list_invoices_payload(*invoices_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting invoices...")
         invoices_requester = RequestMaker(self.state)
         invoices_response = invoices_requester.get_response(invoices_payload)
-        invoices_content = ResponseParser(invoices_response).get_response_content()
+        invoices_content = ResponseParser(invoices_response) \
+            .get_response_content()
         invoices_data = invoices_content["data"]
         logger.info("Got %d invoices." % len(invoices_data))
         return invoices_data
@@ -122,16 +119,42 @@ class Caller():
             try:
                 assert company_id in self.available_companies.values()
             except AssertionError:
-                logger.exception("Company ID not in available companies.")
-                logger.error("Available companies:")
-                logger.error(self.available_companies)
+                logger.info("Company not found in default available ",
+                            "companies.")
+                self.update_available_companies_and_recheck(company_id)
+
+    def update_available_companies_and_recheck(self, company_id):
+        logger.info("Updating companies to re-check...")
+        self.update_available_companies()
+        try:
+            assert company_id in self.available_companies.values()
+        except AssertionError:
+            logger.exception("Company ID not in available companies.")
+            logger.error("Available companies:")
+            logger.error(self.available_companies)
+            raise AssertionError
+
+    def update_available_companies(self):
+        self.available_companies = {}
+        logger.info("Updating caller available companies...")
+        try:
+            for company in self.get_companies():
+                company_id = company["IdEmpresa"]
+                company_name = company["razonSocial"]
+                self.available_companies[company_name] = company_id
+            logger.info("Availables companies updated.")
+        except KeyError:
+            self.available_companies["Query Error"] = None
+            logger.exception("Got these companies:", self.available_companies)
+            logger.error("Check keys for company id and name")
 
     def get_diary_for(self, dates_range=None, company_id=None):
         self.get_session_key()
         self.assert_company_is_available(company_id)
         diary_payload_parameters = (dates_range, company_id, self.session_key)
         logger.info("Preparing diary payload...")
-        diary_payload = self.payload_builder.get_list_diary_payload(*diary_payload_parameters)
+        diary_payload = self.payload_builder \
+            .get_list_diary_payload(*diary_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting diary...")
         diary_requester = RequestMaker(self.state)
@@ -146,12 +169,15 @@ class Caller():
         self.assert_company_is_available(company_id)
         inventory_payload_parameters = (company_id, self.session_key)
         logger.info("Preparing inventory payload...")
-        inventory_payload = self.payload_builder.get_list_inventory_payload(*inventory_payload_parameters)
+        inventory_payload = self.payload_builder \
+            .get_list_inventory_payload(*inventory_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting inventory...")
         inventory_requester = RequestMaker(self.state)
-        inventory_response = inventory_requester.get_response(inventory_payload)
-        inventory_content = ResponseParser(inventory_response).get_response_content()
+        inventory_response = inventory_requester \
+            .get_response(inventory_payload)
+        inventory_content = ResponseParser(inventory_response) \
+            .get_response_content()
         inventory_data = inventory_content["data"]
         logger.info("Got %d items." % len(inventory_data))
         return inventory_data
@@ -161,12 +187,14 @@ class Caller():
         self.assert_company_is_available(company_id)
         deposit_payload_parameters = (item_id, company_id, self.session_key)
         logger.info("Preparing deposit payload...")
-        deposit_payload = self.payload_builder.get_list_deposits_stock_for_item_payload(*deposit_payload_parameters)
+        deposit_payload = self.payload_builder \
+            .get_list_deposits_stock_for_item_payload(*deposit_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting deposits for %s..." % item_id)
         deposit_requester = RequestMaker(self.state)
         deposit_response = deposit_requester.get_response(deposit_payload)
-        deposit_content = ResponseParser(deposit_response).get_response_content()
+        deposit_content = ResponseParser(deposit_response) \
+            .get_response_content()
         deposit_data = deposit_content["data"]
         logger.info("Got deposits.")
         return deposit_data
@@ -174,9 +202,11 @@ class Caller():
     def get_ccosts_for_type(self, ccost_type_1_or_2, company_id=None):
         self.get_session_key()
         self.assert_company_is_available(company_id)
-        ccost_payload_parameters = (ccost_type_1_or_2, company_id, self.session_key)
+        ccost_payload_parameters = (ccost_type_1_or_2, company_id,
+                                    self.session_key)
         logger.info("Preparing ccost payload...")
-        ccost_payload = self.payload_builder.get_list_ccost_payload(*ccost_payload_parameters)
+        ccost_payload = self.payload_builder \
+            .get_list_ccost_payload(*ccost_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting dccost for type number %d..." % ccost_type_1_or_2)
         ccost_requester = RequestMaker(self.state)
@@ -191,14 +221,14 @@ class Caller():
 ##########
 
 class PayloadBuilder():
-    def __init__(self, colppy_conf=None):
-        if not colppy_conf:
-            logger.info("Taking default Colppy configuration...")
-            colppy_conf = copy.deepcopy(iki_colppy_conf.defaults)
-
-        self.configurator = PayloadBuilderBaseConfigurator(colppy_conf)
-        self.payloads = self.configurator.get_payload_templates()
-
+    def __init__(self, payload_templates=None, app_configuraton=None):
+        self.configurator = ParseConfiguration(app_configuraton)
+        self.default_company_id = self.configurator \
+            .get_default_company_id()
+        colppy_credentials = self.configurator \
+            .get_colppy_credentials()
+        self.payloads = PayloadBuilderConfigurator(payload_templates) \
+            .get_configured_templates(colppy_credentials)
         self.session_key = None
 
     def get_login_payload(self):
@@ -211,17 +241,20 @@ class PayloadBuilder():
     def if_session_key_then_set_it_to_payloads(self, session_key):
         if session_key:
             self.session_key = session_key
-            self.payloads = SessionKeySetter(session_key).set_key_to_payloads(self.payloads)
+            self.payloads = SessionKeySetter(session_key) \
+                .set_key_to_payloads(self.payloads)
         else:
             if not self.session_key:
                 logger.error("Please provide a Session Key.")
                 raise ValueError("No session key.")
             else:
-                logger.info("Session key already set to %s." % self.session_key)
+                logger.info("Session key already set to %s."
+                            % self.session_key)
 
     def get_list_n_ccost_payload(self, ccost_type_1_or_2, company_id=None,
                                  session_key=None):
-        self.payloads = CCostTypeSetter(ccost_type_1_or_2).set_ccost_type_to_payload(self.payloads)
+        self.payloads = CCostTypeSetter(ccost_type_1_or_2) \
+            .set_ccost_type_to_payload(self.payloads)
         self.if_session_key_then_set_it_to_payloads(session_key)
         self.if_not_company_id_use_last_one_or_default(company_id)
         return copy.deepcopy(self.payloads["list_ccosts"])
@@ -236,15 +269,16 @@ class PayloadBuilder():
                 self.use_default_company_id_for_first_build()
 
     def use_default_company_id_for_first_build(self):
-        company_id = self.configurator.get_company_id()
-        if company_id:
+        company_id = self.default_company_id
+        if company_id != "":
             self.set_company_id_to_payloads(company_id)
         else:
             logger.error("Please provide a Company ID.")
             raise ValueError("No company ID.")
 
     def set_company_id_to_payloads(self, company_id):
-        self.payloads = CompanyIdSetter(company_id).set_company_id_from_input(self.payloads)
+        self.payloads = CompanyIdSetter(company_id) \
+            .set_company_id_from_input(self.payloads)
         self.company_id = company_id
 
     def get_list_invoices_payload(self, dates_range=None, company_id=None,
@@ -256,11 +290,13 @@ class PayloadBuilder():
 
     def if_dates_then_set_them_to_payloads(self, dates_range):
         if dates_range:
-            self.payloads = DatesSetter(dates_range).set_dates_to_payloads(self.payloads)
+            self.payloads = DatesSetter(dates_range) \
+                .set_dates_to_payloads(self.payloads)
             self.dates_range = dates_range
         else:
             try:
-                logger.info("Dates range already set from %s to %s." % self.dates_range)
+                logger.info("Dates range already set from %s to %s."
+                            % self.dates_range)
             except AttributeError:
                 logger.exception("Please provide a dates range.")
                 raise ValueError("No dates provided.")
@@ -277,46 +313,16 @@ class PayloadBuilder():
         self.if_not_company_id_use_last_one_or_default(company_id)
         return copy.deepcopy(self.payloads["list_inventory"])
 
-    def get_list_deposits_stock_for_item_payload(self, item_id,
-                                                 company_id=None, session_key=None):
-        self.payloads = ItemIdSetter(item_id).set_item_id_to_payload(self.payloads)
+    def get_list_deposits_stock_for_item_payload(
+                                                 self, item_id,
+                                                 company_id=None,
+                                                 session_key=None
+                                                 ):
+        self.payloads = ItemIdSetter(item_id) \
+            .set_item_id_to_payload(self.payloads)
         self.if_session_key_then_set_it_to_payloads(session_key)
         self.if_not_company_id_use_last_one_or_default(company_id)
         return copy.deepcopy(self.payloads["list_deposits_for_item"])
-
-
-class PayloadBuilderBaseConfigurator():
-    def __init__(self, colppy_conf):
-        self.colppy_conf = colppy_conf
-        self.parse_configuration()
-
-    def parse_configuration(self):
-        self.set_payload_templates_from_conf()
-        self.set_company_id_from_conf()
-
-    def set_payload_templates_from_conf(self):
-        logger.info("Trying to load payload templates from configuration...")
-        try:
-            self.payload_templates = self.colppy_conf["payload_temps"]
-            logger.info(f"Loaded services: {list(self.payload_templates.keys())}")
-        except KeyError:
-            logger.exception("'payload_temps' key not found in configuration.")
-            raise KeyError("Payload templates not found.")
-
-    def set_company_id_from_conf(self):
-        try:
-            logger.info("Trying to load Company ID from configuration...")
-            self.company_id = self.colppy_conf["company_id"]
-            logger.info("Loaded Company ID: %s" % self.company_id)
-        except KeyError:
-            self.company_id = None
-            logger.info("Not found.")
-
-    def get_payload_templates(self):
-        return self.payload_templates
-
-    def get_company_id(self):
-        return self.company_id
 
 
 class SessionKeySetter():
@@ -334,7 +340,8 @@ class SessionKeySetter():
             try:
                 payload["parameters"]["sesion"] = copy.deepcopy(session_dict)
             except KeyError:
-                logger.exception("Could not find [parameters][session] in payloads.")
+                logger.exception("Could not find [parameters][session]",
+                                 "in payloads.")
                 raise KeyError("Could not set session key.")
         logger.info("Key set on payloads.")
         return payloads
@@ -343,9 +350,11 @@ class SessionKeySetter():
         session_dict = {}
         session_dict["claveSesion"] = self.session_key
         try:
-            session_dict["usuario"] = payloads["login"]["parameters"]["usuario"]
+            session_dict["usuario"] = (payloads["login"]
+                                       ["parameters"]["usuario"])
         except KeyError:
-            logger.exception("Could not find [parameters][session] in payloads.")
+            logger.exception("Could not find [parameters][session]",
+                             " in payloads.")
             raise KeyError("Could not set session key.")
         return session_dict
 
@@ -379,7 +388,8 @@ class CompanyIdSetter():
                     payload["parameters"]["idEmpresa"] = self.company_id
             logger.info("Company set on payloads.")
         except KeyError:
-            logger.exception("Could not find [parameters][idEmpresa] in payloads.")
+            logger.exception("Could not find [parameters][idEmpresa]",
+                             " in payloads.")
             raise KeyError("Could not set company.")
         return payloads
 
@@ -407,7 +417,8 @@ class CCostTypeSetter():
             payloads["list_ccosts"]["parameters"]["ccosto"] = self.ccost_type
             logger.info("Done.")
         except KeyError:
-            logger.exception("Could not find [parameters][ccosto] in payloads.")
+            logger.exception("Could not find [parameters][ccosto]",
+                             " in payloads.")
             raise KeyError("Could not set ccost type.")
         return payloads
 
@@ -443,13 +454,16 @@ class DatesSetter():
 
     def set_dates_to_payloads(self, payloads):
         self.reorder_dates()
-        logger.info("Setting dates for data from  %s to %s...\n" % self.dates_range)
+        logger.info("Setting dates for data from  %s to %s...\n" %
+                    self.dates_range)
         start_date, end_date = self.dates_range
         try:
             payloads["list_diary"]["parameters"]["fromDate"] = start_date
             payloads["list_diary"]["parameters"]["toDate"] = end_date
-            payloads["list_invoices"]["parameters"]["filter"][0]["value"] = start_date
-            payloads["list_invoices"]["parameters"]["filter"][1]["value"] = end_date
+            (payloads["list_invoices"]["parameters"]
+                ["filter"][0]["value"]) = start_date
+            (payloads["list_invoices"]["parameters"]
+                ["filter"][1]["value"]) = end_date
         except KeyError:
             logger.exception("Could not find dates keys in payloads.")
             raise KeyError("Could not set dates.")
@@ -490,10 +504,12 @@ class ItemIdSetter():
     def set_item_id_to_payload(self, payloads):
         try:
             logger.info("Setting item ID to %s..." % self.item_id)
-            payloads["list_deposits_for_item"]["parameters"]["idItem"] = self.item_id
+            (payloads["list_deposits_for_item"]
+                ["parameters"]["idItem"]) = self.item_id
             logger.info("Done.")
         except KeyError:
-            logger.exception("Could not find [parameters][idItem] in payloads.")
+            logger.exception("Could not find [parameters][idItem]",
+                             " in payloads.")
             raise KeyError("Could not set item id.")
         return payloads
 
@@ -529,7 +545,8 @@ class RequestMaker():
             self.request_type = request_type
             self.payload = payload
             logger.info("Calling API...   ")
-            return self.request_types[request_type](self.call_url, json=payload)
+            return self.request_types[request_type](self.call_url,
+                                                    json=payload)
         else:
             logger.error("Request type not valid.")
             logger.error("Valid requests:", self.request_types.keys())
@@ -580,7 +597,8 @@ class ResponseParser():
                 success = self.parsed_response["response"]["success"]
                 return success
             except KeyError:
-                logger.exception("Could not check response success. Check response.")
+                logger.exception("Could not check response success.",
+                                 " Check response.")
                 return False
         else:
             logger.error("Response of query is None.")

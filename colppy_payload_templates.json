@@ -1,0 +1,130 @@
+{
+  "login": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "Usuario",
+      "operacion": "iniciar_sesion"
+    },
+    "parameters": "user dict"
+  },
+  "list_companies": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "Empresa",
+      "operacion": "listar_empresa"
+    },
+    "parameters": {
+      "usuario": null,
+      "password": null,
+      "sesion": "Dict missing",
+      "idEmpresa": null,
+      "idFactura": null,
+      "fechaDesde": null,
+      "fechaHasta": null,
+      "start": 0,
+      "limit": 10
+    },
+    "filter": [
+      {
+        "field": "IdEmpresa",
+        "op": "<>",
+        "value": "1"
+      }
+    ],
+    "order": {
+      "field": [
+        "IdEmpresa"
+      ],
+      "order": "asc"
+    }
+  },
+  "list_ccosts": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "Empresa",
+      "operacion": "listar_ccostos"
+    },
+    "parameters": {
+      "sesion": "Dict missing",
+      "idEmpresa": "Company ID str missing",
+      "ccosto": "ccost int missing - 1 or 2"
+    }
+  },
+  "list_diary": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "Contabilidad",
+      "operacion": "listar_movimientosdiario"
+    },
+    "parameters": {
+      "sesion": "Dict missing",
+      "idEmpresa": "Company ID str missing",
+      "fromDate": "YYYY-MM-DD str missing",
+      "toDate": "YYYY-MM-DD str missing",
+      "start": 0,
+      "limit": 10000
+    }
+  },
+  "list_invoices": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "FacturaVenta",
+      "operacion": "listar_facturasventa"
+    },
+    "parameters": {
+      "sesion": "Dict missing",
+      "idEmpresa": "Company ID str missing",
+      "start": 0,
+      "limit": 10000,
+      "filter": [
+        {
+          "field": "fechaFactura",
+          "op": ">=",
+          "value": "start YYYY-MM-DD str missing"
+        },
+        {
+          "field": "fechaFactura",
+          "op": "<=",
+          "value": "end YYYY-MM-DD str missing"
+        }
+      ],
+      "order": {
+        "field": [
+          "idTipoComprobante",
+          "idFactura"
+        ],
+        "order": "asc"
+      }
+    }
+  },
+  "list_inventory": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "Inventario",
+      "operacion": "listar_itemsinventario"
+    },
+    "parameters": {
+      "sesion": "Dict missing",
+      "idEmpresa": "Company ID str missing",
+      "start": 0,
+      "limit": 10000,
+      "filter": [],
+      "order": {
+        "field": "descripcion",
+        "dir": "ASC"
+      }
+    }
+  },
+  "list_deposits_for_item": {
+    "auth": "dev_user dict missing",
+    "service": {
+      "provision": "Inventario",
+      "operacion": "listar_dispDeposito"
+    },
+    "parameters": {
+      "idEmpresa": "Company ID str missing",
+      "idItem": "Item ID str missing",
+      "sesion": "Dict missing"
+    }
+  }
+}

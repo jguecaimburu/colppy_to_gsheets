@@ -1,15 +1,17 @@
 from gspread_pandas import Spread
 from gspread_pandas.conf import get_creds
-import gsheet_configuration
+from app_configurator import ParseConfiguration
 
 
 class GoogleSpread(object):
 
-    def __init__(self, spread, sheet=0, creds=None, create_sheet=False):
+    def __init__(self, spread, sheet=0, creds=None,
+                 create_sheet=False, conf_file=None):
         if creds:
             self.creds = creds
         else:
-            self.creds = get_creds(config=gsheet_configuration.base)
+            credentials = ParseConfiguration(conf_file).get_google_creds()
+            self.creds = get_creds(config=credentials)
         self.spread = Spread(spread, sheet=sheet, creds=self.creds,
                              create_sheet=create_sheet)
 

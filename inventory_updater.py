@@ -1,24 +1,3 @@
-""" To DOs:
-- Test more situations
-- Test with existing sheet
-- Test in Jupyter
-
-General:
-- Test py2exe in Windows.
-- Check final logs
-- Get first working program
-
-Future TO-DOs:
-- Refactor main module class
-- Filter relevant INVENTORY
-- Correct bare EXCEPTS
-- Write comments if necessary
-
-Future General:
-- WRITE UNITTEST THAT DON'T DEPEND ON INTERNET CONNECTION
-- Write comments to 3 modules where necessary
-"""
-
 # IMPORTS
 ##############################################################################
 
@@ -34,7 +13,8 @@ import sys
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s: %(message)s")
+file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s:",
+                                   "%(message)s")
 stream_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
 file_handler = logging.FileHandler(filename="inventory_updater.log")
@@ -97,7 +77,8 @@ class DepositInventoryUpdater():
             self.spread = GoogleSpread(spread_name)
             logger.info("Spreadsheet opened.")
         except:  # Test error
-            logger.exception("There was a problem opening the Google spreadsheet.")
+            logger.exception("There was a problem opening the Google",
+                             "spreadsheet.")
             raise ValueError
 
     def set_inventory_df(self):
@@ -131,7 +112,8 @@ class DepositInventoryUpdater():
         except AttributeError:
             self.update_available_deposits()
         if deposit_name not in self.available_deposits:
-            logger.warning("Deposit %s not in available deposits. Available deposits:" % deposit_name)
+            logger.warning("Deposit %s not in available deposits."
+                           % deposit_name, " Available deposits:")
             logger.warning(self.available_deposits)
             return False
         else:
@@ -181,7 +163,8 @@ class DepositInventoryUpdater():
     def set_temp_worksheet_name(self):
         now_dt = datetime.datetime.now()
         now_str = now_dt.strftime("%d-%m-%Y")
-        self.temp_worksheet_name = "_".join(["temp", self.deposit_name, now_str])
+        self.temp_worksheet_name = "_".join(["temp", self.deposit_name,
+                                            now_str])
 
     def find_temp_worksheet_or_create_new(self):
         logger.info("Searching for worksheet %s" % self.temp_worksheet_name)
@@ -206,7 +189,8 @@ class DepositInventoryUpdater():
         logger.info("Done.")
 
     def update_empty_cells_with_deposit_data(self, batch_size):
-        logger.info("Updating cells with %s deposit data..." % self.deposit_name)
+        logger.info("Updating cells with %s deposit data..."
+                    % self.deposit_name)
         self.pre_update_setup(batch_size)
         items_to_update = self.get_items_to_update()
         total_items_to_update = len(items_to_update)
@@ -214,7 +198,8 @@ class DepositInventoryUpdater():
         for item_id in items_to_update:
             count_items += 1
             self.try_to_update_cells_for(item_id)
-            if count_items % self.batch_size == 0 or count_items == total_items_to_update:
+            if ((count_items % self.batch_size == 0) or
+                    (count_items == total_items_to_update)):
                 self.upload_batch_to_sheet()
             advance = (count_items / total_items_to_update) * 100
             logger.info(f"{'{:.2f}'.format(advance)}% done.")
@@ -346,7 +331,8 @@ class DepositInventoryUpdater():
             batch_series = self.df[col].iloc[self.batch_start_index:]
         else:
             logger.info("Getting batch series...")
-            batch_series = self.df[col].iloc[self.batch_start_index: self.batch_end_index]
+            batch_series = self.df[col].iloc[self.batch_start_index:
+                                             self.batch_end_index]
         return batch_series
 
     def update_column_with_values(self, col, batch_values):
@@ -361,12 +347,14 @@ class DepositInventoryUpdater():
     def update_update_cells_for(self, col):
         logger.info("Configuring %s range for next batch..." % col)
         self.update_range_dict[col][0][0] += self.batch_size
-        self.update_range_dict[col][1][0] = self.update_range_dict[col][0][0] + self.batch_size - 1
+        self.update_range_dict[col][1][0] = (self.update_range_dict[col][0][0]
+                                             + self.batch_size - 1)
         logger.info("Done.")
 
     def post_final_df(self):
         self.final_worksheet_name = self.temp_worksheet_name[5:]
-        logger.info("Uploading final data to %s..." % self.final_worksheet_name)
+        logger.info("Uploading final data to %s..."
+                    % self.final_worksheet_name)
         self.change_header_names()
         self.spread.df_to_sheet(self.df.copy(), index=False,
                                 start_cell=self.start_cell,
