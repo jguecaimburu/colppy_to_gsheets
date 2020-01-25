@@ -51,50 +51,7 @@ class Caller():
         self.payload_builder = PayloadBuilder(payload_templates,
                                               app_configuraton)
         self.available_companies = ParseConfiguration(app_configuraton) \
-            .get_default_available_companies()
-
-    def get_companies(self):
-        self.get_session_key()
-        logger.info("Preparing companies payload...")
-        companies_payload = self.payload_builder \
-            .get_list_companies_payload(self.session_key)
-        logger.info("Payload ok.")
-        logger.info("Getting companies...")
-        companies_requester = RequestMaker(self.state)
-        companies_response = companies_requester \
-            .get_response(companies_payload)
-        companies_content = ResponseParser(companies_response) \
-            .get_response_content()
-        companies_data = companies_content["data"]
-        logger.info("Got %d companies." % len(companies_data))
-        return companies_data
-
-    def get_session_key(self):
-        seconds_per_min = 60
-        session_duration_in_mins = 25
-        now = datetime.datetime.now()
-        try:
-            delta_mins = ((now - self.login_time).total_seconds()
-                          / seconds_per_min)
-            if delta_mins > session_duration_in_mins:
-                open_session = self.login()
-                self.session_key = open_session["data"]["claveSesion"]
-                self.login_time = datetime.datetime.now()
-        except AttributeError:
-            open_session = self.login()
-            self.session_key = open_session["data"]["claveSesion"]
-            self.login_time = datetime.datetime.now()
-        return self.session_key
-
-    def login(self):
-        login_payload = self.payload_builder.get_login_payload()
-        logger.info("Trying to log into Colppy as %s..." % self.state)
-        login_requester = RequestMaker(self.state)
-        login_response = login_requester.get_response(login_payload,
-                                                      request_type="post")
-        login_content = ResponseParser(login_response).get_response_content()
-        logger.info("Login OK.")
-        return login_content
+            .try_to_get_default_available_companies()
 
     def get_invoices_for(self, dates_range=None, company_id=None):
         self.get_session_key()
@@ -106,21 +63,46 @@ class Caller():
             get_list_invoices_payload(*invoices_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting invoices...")
-        invoices_requester = RequestMaker(self.state)
-        invoices_response = invoices_requester.get_response(invoices_payload)
-        invoices_content = ResponseParser(invoices_response) \
-            .get_response_content()
+        invoices_content = self.get_content_for_payload(invoices_payload)
         invoices_data = invoices_content["data"]
         logger.info("Got %d invoices." % len(invoices_data))
         return invoices_data
+
+    def get_session_key(self):
+        seconds_per_min = 60
+        session_duration_in_mins = 25
+        now = datetime.datetime.now()
+        try:
+            delta_mins = ((now - self.login_time).total_seconds()
+                          / seconds_per_min)
+            if delta_mins > session_duration_in_mins:
+                self.login_and_set_session_key()
+        except AttributeError:
+            self.login_and_set_session_key()
+        return self.session_key
+
+    def login_and_set_session_key(self):
+        open_session = self.login()
+        self.session_key = open_session["data"]["claveSesion"]
+        self.login_time = datetime.datetime.now()
+
+    def login(self):
+        login_payload = self.payload_builder.get_login_payload()
+        logger.info("Trying to log into Colppy as %s..." % self.state)
+        login_requester = RequestMaker(self.state)
+        login_response = login_requester.get_response(login_payload,
+                                                      request_type="post")
+        login_content = ResponseParser(login_response).get_response_content()
+        logger.info("Login OK.")
+        return login_content
 
     def assert_company_is_available(self, company_id):
         if company_id:
             try:
                 assert company_id in self.available_companies.values()
             except AssertionError:
-                logger.info("Company not found in default available ",
-                            "companies.")
+                logger.info("Company not found in default available \
+                            companies.")
                 self.update_available_companies_and_recheck(company_id)
 
     def update_available_companies_and_recheck(self, company_id):
@@ -145,8 +127,27 @@ class Caller():
             logger.info("Availables companies updated.")
         except KeyError:
             self.available_companies["Query Error"] = None
-            logger.exception("Got these companies:", self.available_companies)
+            logger.exception("Got these companies:")
+            logger.error(self.available_companies)
             logger.error("Check keys for company id and name")
+
+    def get_companies(self):
+        self.get_session_key()
+        logger.info("Preparing companies payload...")
+        companies_payload = self.payload_builder \
+            .get_list_companies_payload(self.session_key)
+        logger.info("Payload ok.")
+        logger.info("Getting companies...")
+        companies_content = self.get_content_for_payload(companies_payload)
+        companies_data = companies_content["data"]
+        logger.info("Got %d companies." % len(companies_data))
+        return companies_data
+
+    def get_content_for_payload(self, payload):
+        requester = RequestMaker(self.state)
+        response = requester.get_response(payload)
+        content = ResponseParser(response).get_response_content()
+        return content
 
     def get_diary_for(self, dates_range=None, company_id=None):
         self.get_session_key()
@@ -157,9 +158,7 @@ class Caller():
             .get_list_diary_payload(*diary_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting diary...")
-        diary_requester = RequestMaker(self.state)
-        diary_response = diary_requester.get_response(diary_payload)
-        diary_content = ResponseParser(diary_response).get_response_content()
+        diary_content = self.get_content_for_payload(diary_payload)
         diary_data = diary_content["movimientos"]
         logger.info("Got %d diary movements." % len(diary_data))
         return diary_data
@@ -173,11 +172,7 @@ class Caller():
             .get_list_inventory_payload(*inventory_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting inventory...")
-        inventory_requester = RequestMaker(self.state)
-        inventory_response = inventory_requester \
-            .get_response(inventory_payload)
-        inventory_content = ResponseParser(inventory_response) \
-            .get_response_content()
+        inventory_content = self.get_content_for_payload(inventory_payload)
         inventory_data = inventory_content["data"]
         logger.info("Got %d items." % len(inventory_data))
         return inventory_data
@@ -191,10 +186,7 @@ class Caller():
             .get_list_deposits_stock_for_item_payload(*deposit_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting deposits for %s..." % item_id)
-        deposit_requester = RequestMaker(self.state)
-        deposit_response = deposit_requester.get_response(deposit_payload)
-        deposit_content = ResponseParser(deposit_response) \
-            .get_response_content()
+        deposit_content = self.get_content_for_payload(deposit_payload)
         deposit_data = deposit_content["data"]
         logger.info("Got deposits.")
         return deposit_data
@@ -209,9 +201,7 @@ class Caller():
             .get_list_ccost_payload(*ccost_payload_parameters)
         logger.info("Payload ok.")
         logger.info("Getting dccost for type number %d..." % ccost_type_1_or_2)
-        ccost_requester = RequestMaker(self.state)
-        ccost_response = ccost_requester.get_response(ccost_payload)
-        ccost_content = ResponseParser(ccost_response).get_response_content()
+        ccost_content = self.get_content_for_payload(ccost_payload)
         ccost_data = ccost_content["data"]
         logger.info("Got ccosts.")
         return ccost_data
@@ -224,7 +214,7 @@ class PayloadBuilder():
     def __init__(self, payload_templates=None, app_configuraton=None):
         self.configurator = ParseConfiguration(app_configuraton)
         self.default_company_id = self.configurator \
-            .get_default_company_id()
+            .try_to_get_default_company_id()
         colppy_credentials = self.configurator \
             .get_colppy_credentials()
         self.payloads = PayloadBuilderConfigurator(payload_templates) \
@@ -340,8 +330,8 @@ class SessionKeySetter():
             try:
                 payload["parameters"]["sesion"] = copy.deepcopy(session_dict)
             except KeyError:
-                logger.exception("Could not find [parameters][session]",
-                                 "in payloads.")
+                logger.exception("Could not find [parameters][session] \
+                                 in payloads.")
                 raise KeyError("Could not set session key.")
         logger.info("Key set on payloads.")
         return payloads
@@ -353,8 +343,8 @@ class SessionKeySetter():
             session_dict["usuario"] = (payloads["login"]
                                        ["parameters"]["usuario"])
         except KeyError:
-            logger.exception("Could not find [parameters][session]",
-                             " in payloads.")
+            logger.exception("Could not find [parameters][session] \
+                             in payloads.")
             raise KeyError("Could not set session key.")
         return session_dict
 
@@ -388,8 +378,8 @@ class CompanyIdSetter():
                     payload["parameters"]["idEmpresa"] = self.company_id
             logger.info("Company set on payloads.")
         except KeyError:
-            logger.exception("Could not find [parameters][idEmpresa]",
-                             " in payloads.")
+            logger.exception("Could not find [parameters][idEmpresa] \
+                             in payloads.")
             raise KeyError("Could not set company.")
         return payloads
 
@@ -417,8 +407,8 @@ class CCostTypeSetter():
             payloads["list_ccosts"]["parameters"]["ccosto"] = self.ccost_type
             logger.info("Done.")
         except KeyError:
-            logger.exception("Could not find [parameters][ccosto]",
-                             " in payloads.")
+            logger.exception("Could not find [parameters][ccosto] \
+                             in payloads.")
             raise KeyError("Could not set ccost type.")
         return payloads
 
@@ -494,9 +484,10 @@ class ItemIdSetter():
         try:
             assert isinstance(item_id, str)
         except AssertionError:
-            int(item_id)
             logger.exception("Item ID should be str.")
             raise ValueError("Item ID is not a str.")
+        try:
+            int(item_id)
         except ValueError:
             logger.exception("Item ID must be a str of an int.")
             raise ValueError("Item ID str does not contain an int.")
@@ -508,8 +499,8 @@ class ItemIdSetter():
                 ["parameters"]["idItem"]) = self.item_id
             logger.info("Done.")
         except KeyError:
-            logger.exception("Could not find [parameters][idItem]",
-                             " in payloads.")
+            logger.exception("Could not find [parameters][idItem] \
+                             in payloads.")
             raise KeyError("Could not set item id.")
         return payloads
 
@@ -523,12 +514,11 @@ class RequestMaker():
             "production": "https://login.colppy.com/lib/frontera2/service.php"
             }
 
-    request_types = {
-                      "get": requests.get,
-                      "post": requests.post
-                      }
+    request_types = ("get", "post")
 
-    def __init__(self, state):
+    def __init__(self, state=None):
+        if not state:
+            state = "testing"
         if self.is_valid_state(state):
             self.state = state
             self.call_url = self.urls[self.state]
@@ -545,15 +535,17 @@ class RequestMaker():
             self.request_type = request_type
             self.payload = payload
             logger.info("Calling API...   ")
-            return self.request_types[request_type](self.call_url,
-                                                    json=payload)
+            if request_type == "get":
+                return requests.get(self.call_url, json=payload)
+            elif request_type == "post":
+                return requests.post(self.call_url, json=payload)
         else:
             logger.error("Request type not valid.")
-            logger.error("Valid requests:", self.request_types.keys())
+            logger.error("Valid requests:", self.request_types)
             raise ValueError
 
     def is_valid_request_type(self, request_type):
-        return request_type in self.request_types.keys()
+        return request_type in self.request_types
 
 
 class ResponseParser():
@@ -561,8 +553,7 @@ class ResponseParser():
         if self.request_was_successful(response_json):
             logger.info("Query successful.")
         else:
-            logger.error("Query not successful. Response:")
-            logger.error(self.parsed_response)
+            logger.error("Query not successful.")
             raise ValueError
 
     def get_response_content(self):
@@ -586,22 +577,32 @@ class ResponseParser():
         self.parsed_response = response_json.json()
 
     def is_response_success(self):
-        try:
-            self.parsed_response["response"]
-        except KeyError:
-            logger.exception("No [response] key in response.")
-            return False
-
-        if self.parsed_response["response"]:
-            try:
-                success = self.parsed_response["response"]["success"]
-                return success
-            except KeyError:
-                logger.exception("Could not check response success.",
-                                 " Check response.")
+        if self.check_if_response_is_key():
+            if self.parsed_response["response"]:
+                return self.check_success_in_response()
+            else:
+                logger.error("Response of query is None.")
+                logger.error(self.parsed_response["result"])
+                logger.error(self.parsed_response["response"])
                 return False
         else:
-            logger.error("Response of query is None.")
-            logger.error(self.parsed_response["result"])
-            logger.error(self.parsed_response["response"])
+            return False
+
+    def check_if_response_is_key(self):
+        try:
+            self.parsed_response["response"]
+            return True
+        except KeyError:
+            logger.exception("No [response] key in response.")
+            logger.error(self.parsed_response)
+            return False
+
+    def check_success_in_response(self):
+        try:
+            success = self.parsed_response["response"]["success"]
+            return success
+        except KeyError:
+            logger.exception("Could not check response success. \
+                             Check response.")
+            logger.error(self.parsed_response)
             return False

@@ -13,8 +13,8 @@ import sys
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s:",
-                                   "%(message)s")
+file_formatter = logging.Formatter("%(levelname)s: %(name)s: %(asctime)s: \
+    %(message)s")
 stream_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
 file_handler = logging.FileHandler(filename="inventory_updater.log")
@@ -77,8 +77,8 @@ class DepositInventoryUpdater():
             self.spread = GoogleSpread(spread_name)
             logger.info("Spreadsheet opened.")
         except:  # Test error
-            logger.exception("There was a problem opening the Google",
-                             "spreadsheet.")
+            logger.exception("There was a problem opening the Google \
+                             spreadsheet.")
             raise ValueError
 
     def set_inventory_df(self):
