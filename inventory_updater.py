@@ -52,9 +52,10 @@ class DepositInventoryUpdater():
                      }
     duplicate_cols = ["disponibilidad"]
 
-    def __init__(self, state="testing"):
-        if state:
-            self.state = state
+    def __init__(self, state=None):
+        if not state:
+            state = "testing"
+        self.state = state
 
     def paste_deposit_inventory_to_gsheet(self, deposit_name, spread_name,
                                           batch_size=100, colppy_conf=None):
@@ -63,12 +64,11 @@ class DepositInventoryUpdater():
         self.set_inventory_df()
         self.check_and_set_deposit_name(deposit_name)
         self.start_or_resume_inventory_updating(batch_size)
-        input("Program finished. Press Enter to exit.")
-        sys.exit()
+        self.end_program()
 
     def setup_caller(self, colppy_conf):
         logger.info("Setting up Colppy Caller...")
-        self.caller = Caller(colppy_conf, self.state)
+        self.caller = Caller(colppy_conf, state=self.state)
         logger.info("Done.")
 
     def open_spread(self, spread_name):
@@ -309,7 +309,7 @@ class DepositInventoryUpdater():
         for col in self.cols_to_update:
             batch_values = self.get_batch_values_for(col)
             self.update_column_with_values(col, batch_values)
-            self.update_update_cells_for(col)
+            self.set_new_update_range_for(col)
         logger.info("Updating index for next batch...")
         self.batch_start_index += self.batch_size
         logger.info("Done.")
@@ -344,7 +344,7 @@ class DepositInventoryUpdater():
         self.spread.update_cells(col_init, col_end, batch_values)
         logger.info("Updated.")
 
-    def update_update_cells_for(self, col):
+    def set_new_update_range_for(self, col):
         logger.info("Configuring %s range for next batch..." % col)
         self.update_range_dict[col][0][0] += self.batch_size
         self.update_range_dict[col][1][0] = (self.update_range_dict[col][0][0]
@@ -371,3 +371,7 @@ class DepositInventoryUpdater():
         final_worksheet = self.spread.find_sheet(self.final_worksheet_name)
         if final_worksheet:
             self.spread.delete_sheet(self.temp_worksheet_name)
+
+    def end_program(self):
+        input("Program finished. Press Enter to exit.")
+        sys.exit()

@@ -355,16 +355,58 @@ class CallerTest(unittest.TestCase):
         self.assertEqual(caller.get_companies(),
                          companies_data["response"]["data"])
 
+    @patch("colppy_api.requests.post")
+    @patch("colppy_api.requests.get")
+    def test_list_invoices(self, mock_get, mock_post):
+        with open("login_response.json") as f:
+            login_data = json.load(f)
+        with open("list_invoices_response.json") as f:
+            invoices_data = json.load(f)
 
+        mock_post_resp = mock_response(login_data)
+        mock_post.return_value = mock_post_resp
+        mock_get_resp = mock_response(invoices_data)
+        mock_get.return_value = mock_get_resp
 
-"""
-1. Mock post to return login response.
-2. Mock get to get service response.
-3. Assert data is correct.
+        dates = ("2019-11-01", "2019-11-03")
+        caller = Caller()
+        self.assertEqual(caller.get_invoices_for(dates),
+                         invoices_data["response"]["data"])
 
-Company ID must be in available companies.
-To test updater, add first get_companies_response, 2nd get service response.
-"""
+    @patch("colppy_api.requests.post")
+    @patch("colppy_api.requests.get")
+    def test_list_inventory(self, mock_get, mock_post):
+        with open("login_response.json") as f:
+            login_data = json.load(f)
+        with open("list_inventory_response.json") as f:
+            inventory_data = json.load(f)
+
+        mock_post_resp = mock_response(login_data)
+        mock_post.return_value = mock_post_resp
+        mock_get_resp = mock_response(inventory_data)
+        mock_get.return_value = mock_get_resp
+
+        caller = Caller()
+        self.assertEqual(caller.get_inventory_for(),
+                         inventory_data["response"]["data"])
+
+    @patch("colppy_api.requests.post")
+    @patch("colppy_api.requests.get")
+    def test_list_deposits(self, mock_get, mock_post):
+        with open("login_response.json") as f:
+            login_data = json.load(f)
+        with open("list_deposits_response.json") as f:
+            deposits_data = json.load(f)
+
+        mock_post_resp = mock_response(login_data)
+        mock_post.return_value = mock_post_resp
+        mock_get_resp = mock_response(deposits_data)
+        mock_get.return_value = mock_get_resp
+
+        caller = Caller()
+        self.assertEqual(caller.get_deposits_stock_for("100000"),
+                         deposits_data["response"]["data"])
+
 
 if __name__ == '__main__':
     unittest.main()
