@@ -1,0 +1,34 @@
+{
+  "service": {
+    "provision": "Inventario",
+    "operacion": "listar_dispDeposito",
+    "version": "1_0_0_0",
+    "response_date": "2020-01-25 02:07:49"
+  },
+  "result": {
+    "estado": 0,
+    "mensaje": "La operaci\u00f3n se realiz\u00f3 correctamente"
+  },
+  "response": {
+    "success": true,
+    "message": "Operacion realizada con \u00e9xito",
+    "data": [
+      {
+        "nombre": "Ikitoi General ",
+        "disponibilidad": "0.00000"
+      },
+      {
+        "nombre": "Deposito Barloqui",
+        "disponibilidad": "0.00000"
+      },
+      {
+        "nombre": "Local",
+        "disponibilidad": "1.00000"
+      },
+      {
+        "nombre": "Ecommerce ",
+        "disponibilidad": "0.00000"
+      }
+    ]
+  }
+}

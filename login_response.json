@@ -1,0 +1,19 @@
+{
+  "service": {
+    "provision": "Usuario",
+    "operacion": "iniciar_sesion",
+    "version": "1_0_0_0",
+    "response_date": "2020-01-25 01:59:13"
+  },
+  "result": {
+    "estado": 0,
+    "mensaje": "La operaci\u00f3n se realiz\u00f3 correctamente"
+  },
+  "response": {
+    "success": true,
+    "message": "La operaci\u00f3n se realiz\u00f3 con \u00e9xito.",
+    "data": {
+      "claveSesion": "307a4cb726c5bff4f944661d4ca1f49b"
+    }
+  }
+}

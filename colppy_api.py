@@ -1,11 +1,3 @@
-""" To DOs:
-
-Nice to have:
-- Class encapsulation.
-- Private variables and methods
-
-"""
-
 # IMPORTS
 ##############################################################################
 

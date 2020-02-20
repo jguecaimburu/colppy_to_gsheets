@@ -1,0 +1,58 @@
+{
+  "service": {
+    "provision": "FacturaVenta",
+    "operacion": "listar_facturasventa",
+    "version": "1_0_0_0",
+    "response_date": "2020-01-25 02:50:49"
+  },
+  "result": {
+    "estado": 0,
+    "mensaje": "La operaci\u00f3n se realiz\u00f3 correctamente"
+  },
+  "response": {
+    "success": true,
+    "message": "Operacion realizada con exito",
+    "data": [
+      {
+        "idFactura": "7407906",
+        "idTipoFactura": "1",
+        "fechaPago": "2019-11-01",
+        "idTipoComprobante": "8",
+        "idCliente": "2799903",
+        "idOrden": null,
+        "nroFactura": "0005-00002587",
+        "idMoneda": "1",
+        "fechaFactura": "2019-11-01",
+        "idCondicionPago": "0",
+        "descripcion": "Order 22848",
+        "idEstadoFactura": "5",
+        "totalFactura": "1880.00",
+        "idRetGanancias": null,
+        "IIBBLocal": "0",
+        "IIBBOtro": null,
+        "IVA105": "0.00",
+        "IVA21": "0.00",
+        "IVA27": "0.00",
+        "netoGravado": "1553.72",
+        "netoNoGravado": "0.00",
+        "percepcionIIBB": "0.00",
+        "percepcionIIBB1": null,
+        "percepcionIIBB2": null,
+        "percepcionIVA": "0.00",
+        "totalIVA": "326.28",
+        "valorCambio": "1.0000",
+        "totalaplicado": null,
+        "cae": "69457919002479",
+        "fechaFe": "2019-11-11",
+        "idCurrency": null,
+        "rate": null,
+        "record_insert_ts": "2019-11-01 01:14:12",
+        "record_update_ts": "2019-11-05 15:34:19",
+        "isMobile": "0",
+        "RazonSocial": "Carla Gilabert",
+        "NombreFantasia": "Carla Gilabert"
+      }
+    ],
+    "total": "1"
+  }
+}

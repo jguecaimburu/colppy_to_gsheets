@@ -6,30 +6,6 @@ import json
 import pandas as pd
 
 
-"""
-To do:
-- Mock post login
-- Mock GoogleSpread.find_sheet:
-    if new ws: first None then True (end)
-    if not new ws: both True
-- Mock df_to_sheet to count:
-    if new ws: 2
-    if not new ws: 1
-- Mock sheet_to_df to count:
-    if not new ws: 1
-- Mock update_cells to count:
-    if new ws: 2 labels + n cols * batchs (roundup(n_total/batch_size))
-    if not new ws: 1 label + n cols * batchs (roundup(n_to_upd/batch_size))
-- Mock delete_sheet to count: 1
-- Mock get request to count: - IDEA: Maybe get returns deposits and mock
-Caller_get_inventory()
-    1. Inventory
-    2. Deposits for first id
-    3. Deposits for each id to update
-- Mock input to run test - SEARCH HOW TO
-
-"""
-
 # MOCKED CLASSES AND FUNCTIONS
 #########################################################################
 

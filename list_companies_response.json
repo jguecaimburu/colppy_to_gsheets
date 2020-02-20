@@ -1,0 +1,34 @@
+{
+  "service": {
+    "provision": "Empresa",
+    "operacion": "listar_empresa",
+    "version": "1_0_0_0",
+    "response_date": "2020-01-25 02:02:46"
+  },
+  "result": {
+    "estado": 0,
+    "mensaje": "La operaci\u00f3n se realiz\u00f3 correctamente"
+  },
+  "response": {
+    "success": true,
+    "message": "Operacion realizada con exito",
+    "data": [
+      {
+        "IdEmpresa": "19459",
+        "razonSocial": "Ikitoi SA",
+        "Nombre": "Ikitoi",
+        "idPlan": "170",
+        "tipo": "platinum_descuento",
+        "esAdministrador": "0",
+        "logoPath": "https://login.colppy.com/images_external/19459_logo Ikitoi 2.jpg",
+        "activa": "0",
+        "fechaVencimiento": "2020-02-10",
+        "UltimoLogin": "2020-01-25 04:59:13",
+        "CUIT": "30-71460409-7",
+        "fecha_cierre_impuesto": "2020-12-01",
+        "actividad_economica": null
+      }
+    ],
+    "total": "1"
+  }
+}

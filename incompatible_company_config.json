@@ -1,0 +1,50 @@
+{
+  "colppy": {
+    "defaults": {
+      "company_id": "11111",
+      "available_companies": {
+        "Test SA": "11112"
+      },
+      "available_ccosts": {
+        "1": {
+          "": null,
+          " ": null,
+          "null": null,
+          "Ecommerce": "33333",
+          "Local": "33333"
+        },
+        "2": {
+          "": null,
+          " ": null,
+          "null": null
+        }
+      }
+    },
+    "credentials": {
+      "dev_user": {
+        "usuario": "test_dev@gmail.com",
+        "password": "1111222233334444"
+      },
+      "user": {
+        "usuario": "test_user@gmail.com",
+        "password": "5555666677778888"
+      }
+    }
+  },
+  "google": {
+    "credentials": {
+      "installed": {
+        "client_id": "111222333444-aaaaaaaaaaaaaaaaaaaaaaaaaaamdcu.apps.googleusercontent.com",
+        "project_id": "test-from-colppy",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": "5555555555-111-222-66666",
+        "redirect_uris": [
+          "urn:ietf:wg:oauth:2.0:oob",
+          "http://localhost"
+        ]
+      }
+    }
+  }
+}

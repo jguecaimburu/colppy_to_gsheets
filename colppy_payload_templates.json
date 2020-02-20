@@ -119,7 +119,7 @@
     "auth": "dev_user dict missing",
     "service": {
       "provision": "Inventario",
-      "operacion": "listar_dispDeposito"
+          "operacion": "listar_dispDeposito"
     },
     "parameters": {
       "idEmpresa": "Company ID str missing",
