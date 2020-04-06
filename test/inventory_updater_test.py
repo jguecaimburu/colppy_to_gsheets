@@ -1,9 +1,15 @@
 import unittest
 from requests import HTTPError
-from inventory_updater import DepositInventoryUpdater
 from unittest.mock import patch, Mock
 import json
 import pandas as pd
+import os
+import sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+from inventory_updater import DepositInventoryUpdater
 
 
 # MOCKED CLASSES AND FUNCTIONS
@@ -69,7 +75,7 @@ def mock_requests_response(json_data, raise_status=None):
 #########################################################################
 
 
-@patch("inventory_updater_test.DepositInventoryUpdater.end_program")
+@patch("test.inventory_updater_test.DepositInventoryUpdater.end_program")
 @patch("inventory_updater.Caller.get_inventory_for")
 @patch("colppy_api.requests.post")
 @patch("colppy_api.requests.get")
@@ -94,11 +100,11 @@ class DepositInventoryUpdaterTest(unittest.TestCase):
 
     def test_paste_deposits_from_zero(self, mock_gspread, mock_get,
                                       mock_post, mock_inv, mock_end):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_deposits_response.json") as f:
+        with open("test/data/list_deposits_response.json") as f:
             deposits_data = json.load(f)
-        with open("list_inventory_response.json") as f:
+        with open("test/data/list_inventory_response.json") as f:
             inventory_response = json.load(f)
             inventory_data = inventory_response["response"]["data"]
 
@@ -123,11 +129,11 @@ class DepositInventoryUpdaterTest(unittest.TestCase):
 
     def test_paste_deposits_from_previous(self, mock_gspread, mock_get,
                                           mock_post, mock_inv, mock_end):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_deposits_response.json") as f:
+        with open("test/data/list_deposits_response.json") as f:
             deposits_data = json.load(f)
-        with open("list_inventory_response.json") as f:
+        with open("test/data/list_inventory_response.json") as f:
             inventory_response = json.load(f)
             inventory_data = inventory_response["response"]["data"]
 
@@ -154,11 +160,11 @@ class DepositInventoryUpdaterTest(unittest.TestCase):
 
     def test_new_equal_from_previous(self, mock_gspread, mock_get,
                                      mock_post, mock_inv, mock_end):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_deposits_response.json") as f:
+        with open("test/data/list_deposits_response.json") as f:
             deposits_data = json.load(f)
-        with open("list_inventory_response.json") as f:
+        with open("test/data/list_inventory_response.json") as f:
             inventory_response = json.load(f)
             inventory_data = inventory_response["response"]["data"]
 

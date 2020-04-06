@@ -37,7 +37,7 @@ logger.addHandler(stream_handler)
 class ParseConfiguration():
     def __init__(self, config_json=None):
         if not config_json:
-            config_json = "app_configuration.json"
+            config_json = "config/app_configuration.json"
         logger.info("Opening configuration file...")
         try:
             with open(config_json, "r") as f:
@@ -121,7 +121,7 @@ class ParseConfiguration():
 class PayloadBuilderConfigurator():
     def __init__(self, payload_templates=None):
         if not payload_templates:
-            payload_templates = "colppy_payload_templates.json"
+            payload_templates = "config/colppy_payload_templates.json"
         self.try_to_open_payload_templates(payload_templates)
         try:
             logger.info("Services found:")

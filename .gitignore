@@ -1,0 +1,7 @@
+app_configuration.json
+*.log
+*.ipynb
+c2gs_env
+.ipynb_checkpoints
+**/.pytest_cache
+**/__pycache__

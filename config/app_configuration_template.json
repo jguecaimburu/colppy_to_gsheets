@@ -1,0 +1,59 @@
+'''
+  This file should be complete before running the program.
+  The name of the file should be app_configuration.json, remember to change it
+  as this is just a template. After completing, you can delete the comments.
+  The colppy_payload_templates.json file is OK as it is, no need to complete
+  anything there.
+'''
+
+
+{
+  "colppy": {
+    "defaults": {
+      "company_id": "10222",  # Int formatted as a str with Colppy company ID
+      "available_companies": {  # Dictionary containing available companies (min 1 company)
+        "Example LLC": "10222"
+      },
+      "available_ccosts": { # Functionality not yet implemented. Leave unchanged
+        "1": {
+          "": null,
+          " ": null,
+          "null": null,
+          "Ecommerce": "33515",
+          "B2B": "33518"
+        },
+        "2": {
+          "": null,
+          " ": null,
+          "null": null
+        }
+      }
+    },
+    "credentials": {
+      "dev_user": {
+        "usuario": "colppy_dev_user@compay.com",  # Dev user from dev.colppy.com
+        "password": "5435e4l45k235k5k553" # Dev password as MD5 hash
+      },
+      "user": {
+        "usuario": "colppy_user@compay.com",  # Regular user from colppy.com
+        "password": "6dj5w5989erfdsfSES"  # User password as MD5 hash
+      }
+    }
+  },
+  "google": {  # Credentials object provided by Google
+    "credentials": {
+      "installed": {
+        "client_id": "fsraesfesfag-sfasfqwrwawtf-mdcu.apps.googleusercontent.com",
+        "project_id": "project-id",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": "jfsdfña-324235325-632",
+        "redirect_uris": [
+          "urn:ietf:wg:oauth:2.0:oob",
+          "http://localhost"
+        ]
+      }
+    }
+  }
+}

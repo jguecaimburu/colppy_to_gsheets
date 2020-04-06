@@ -1,9 +1,17 @@
 import unittest
 from requests import HTTPError
-from colppy_api import Caller, PayloadBuilder, RequestMaker, ResponseParser
 from unittest.mock import patch, Mock
 import json
 import datetime
+import os
+import sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
+from colppy_api import Caller, PayloadBuilder, RequestMaker, ResponseParser
+
 
 # MOCKED CLASSES AND FUNCTIONS
 #########################################################################
@@ -225,7 +233,7 @@ class PayloadBuilderTest(unittest.TestCase):
                          self.company_id)
 
     def test_no_company_raises_error_if_no_default(self):
-        pb = PayloadBuilder(app_configuraton="no_defaults.json")
+        pb = PayloadBuilder(app_configuraton="test/data/no_defaults.json")
         with self.assertRaises(ValueError):
             pb.get_list_invoices_payload(dates_range=self.dates,
                                          session_key=self.key)
@@ -302,7 +310,7 @@ class PayloadBuilderTest(unittest.TestCase):
 class CallerTest(unittest.TestCase):
     @patch("colppy_api.requests.post")
     def test_get_session_key_re_logs_after_duration(self, mock_post):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             json_data = json.load(f)
         mock_resp = mock_response(json_data)
         mock_post.return_value = mock_resp
@@ -321,7 +329,7 @@ class CallerTest(unittest.TestCase):
 
     @patch("colppy_api.requests.post")
     def test_get_session_key_not_re_logs_before_duration(self, mock_post):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             json_data = json.load(f)
         mock_resp = mock_response(json_data)
         mock_post.return_value = mock_resp
@@ -341,9 +349,9 @@ class CallerTest(unittest.TestCase):
     @patch("colppy_api.requests.post")
     @patch("colppy_api.requests.get")
     def test_list_companies(self, mock_get, mock_post):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_companies_response.json") as f:
+        with open("test/data/list_companies_response.json") as f:
             companies_data = json.load(f)
 
         mock_post_resp = mock_response(login_data)
@@ -358,9 +366,9 @@ class CallerTest(unittest.TestCase):
     @patch("colppy_api.requests.post")
     @patch("colppy_api.requests.get")
     def test_list_invoices(self, mock_get, mock_post):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_invoices_response.json") as f:
+        with open("test/data/list_invoices_response.json") as f:
             invoices_data = json.load(f)
 
         mock_post_resp = mock_response(login_data)
@@ -376,9 +384,9 @@ class CallerTest(unittest.TestCase):
     @patch("colppy_api.requests.post")
     @patch("colppy_api.requests.get")
     def test_list_inventory(self, mock_get, mock_post):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_inventory_response.json") as f:
+        with open("test/data/list_inventory_response.json") as f:
             inventory_data = json.load(f)
 
         mock_post_resp = mock_response(login_data)
@@ -393,9 +401,9 @@ class CallerTest(unittest.TestCase):
     @patch("colppy_api.requests.post")
     @patch("colppy_api.requests.get")
     def test_list_deposits(self, mock_get, mock_post):
-        with open("login_response.json") as f:
+        with open("test/data/login_response.json") as f:
             login_data = json.load(f)
-        with open("list_deposits_response.json") as f:
+        with open("test/data/list_deposits_response.json") as f:
             deposits_data = json.load(f)
 
         mock_post_resp = mock_response(login_data)
