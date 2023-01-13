@@ -1,5 +1,9 @@
 # Getting Started
 
+## Disclaimer
+
+Do not trust this code too much. Copy whatever you need but test it first as it was implemented as a junior attempt to optimize a manual process. 
+
 ## Overview
 
 [Colppy](https://www.colppy.com) is an accounting software for small business owners. While they provide some solutions to connect with banks and major ecommerce platforms, they lack a good interface to analyze business information.
